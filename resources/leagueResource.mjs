@@ -171,48 +171,41 @@ class LeagueResource {
       });
   }
 
-  // WIP... not sure this is useful... certainly doesn't feel good...
   players(leagueKey, ...args) {
     const cb = extractCallback(args);
-    let playerKeys = args.length ? args.shift() : false,
-      week = false;
+    const limit = 25;
+    let allPlayers = [];
 
-    if (!Array.isArray(playerKeys)) {
-      playerKeys = [playerKeys];
-    }
+    // Function to fetch players with pagination
+    const fetchPlayersPage = (start = 0) => {
+      const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/players;start=${start};count=${limit}`;
 
-    if (args.length) {
-      week = args.shift();
-    }
+      return this.yf.api(this.yf.GET, url)
+        .then((data) => {
+          const players = mapPlayers(data.fantasy_content.league[1].players);
+          allPlayers = allPlayers.concat(players);
 
-    let url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/players;`;
+          // If we received fewer players than the limit, we're done
+          if (players.length < limit) {
+            const league = data.fantasy_content.league[0];
+            league.players = allPlayers;
 
-    url += `player_keys=${playerKeys.join(",")}`;
+            cb(null, league);
+            return league;
+          } else {
+            // Fetch the next page
+            return fetchPlayersPage(start + limit);
+          }
+        });
+    };
 
-    url += "/stats";
-
-    if (week) {
-      url += `;week=${week}`;
-    }
-
-    return this.yf
-      .api(this.yf.GET, url)
-      .then((data) => {
-        // TODO: map players stats here as well
-        const players = mapPlayers(data.fantasy_content.league[1].players);
-
-        const league = data.fantasy_content.league[0];
-
-        league.players = players;
-
-        cb(null, league);
-        return league;
-      })
+    return fetchPlayersPage(0)
       .catch((e) => {
         cb(e);
         throw e;
       });
   }
+
 }
 
 export default LeagueResource;
