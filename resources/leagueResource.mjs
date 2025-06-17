@@ -176,12 +176,29 @@ class LeagueResource {
     const limit = 25;
     let allPlayers = [];
 
+    // Extract status if present (should be the first argument before callback)
+    // Now expecting a string instead of an array
+    const statusFilter = typeof args[0] === 'string' ? args[0] : null;
+
     // Function to fetch players with pagination
     const fetchPlayersPage = (start = 0) => {
-      const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/players;start=${start};count=${limit}`;
+      let url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/players;start=${start};count=${limit}`;
+
+      // Add status filter if provided
+      if (statusFilter) {
+        url += `;status=${statusFilter}`;
+      }
 
       return this.yf.api(this.yf.GET, url)
         .then((data) => {
+          // Handle case where no players are returned
+          if (!data.fantasy_content.league[1].players) {
+            const league = data.fantasy_content.league[0];
+            league.players = allPlayers;
+            cb(null, league);
+            return league;
+          }
+
           const players = mapPlayers(data.fantasy_content.league[1].players);
           allPlayers = allPlayers.concat(players);
 
