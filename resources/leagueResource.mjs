@@ -177,12 +177,11 @@ class LeagueResource {
     let allPlayers = [];
 
     // Extract status if present (should be the first argument before callback)
-    // Now expecting a string instead of an array
     const statusFilter = typeof args[0] === 'string' ? args[0] : null;
 
     // Function to fetch players with pagination
     const fetchPlayersPage = (start = 0) => {
-      let url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/players;start=${start};count=${limit}`;
+      let url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/players;start=${start};count=${limit};out=ownership`;
 
       // Add status filter if provided
       if (statusFilter) {
